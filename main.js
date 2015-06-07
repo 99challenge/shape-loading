@@ -12,33 +12,56 @@ window.requestAnimFrame = (function() {
 var main = (function () {
 
     // Module vars
-    var canvas, ctx, item, shapes = ['circle', 'rect', 'hex'], time = 0;
+    var canvas, ctx, item, time = 0;
 
     // Flower constructor
     var Shape = function (o) {
         this.cx = o.cx;
         this.cy = o.cy;
+        this.size = o.size;
+        this.originalSize = o.size;
         this.currentShape = o.currentShape;
         this.hiding = false;
+        this.showing = false;
 
         this.draw = function () {
-            if (this.currentShape === 'circle') {
-                circle(x, y , this.radius / 2, 'hsla(321, 95%, 60%, .1)', 'hsla(321, 95%, 75%, .2)');
-            }
-            else if (this.currentShape === 'rect') {
+            ctx.fillStyle = 'hsla(321, 95%, 60%, .1)';
+            ctx.strokeStyle = 'hsla(321, 95%, 75%, .2)';
 
+            if (this.currentShape === 0) {
+                circle(this.cx, this.cy , this.size / 2, 'hsla(321, 95%, 60%, .1)', 'hsla(321, 95%, 75%, .2)');
             }
-            else if (this.currentShape === 'hex') {
-
+            else if (this.currentShape === 1) {
+                ctx.fillRect(this.cx - this.size / 2, this.cy - this.size / 2, this.size, this.size);
+                ctx.strokeRect(this.cx - this.size / 2, this.cy - this.size / 2, this.size, this.size);
+            }
+            else if (this.currentShape === 2) {
+                hex(6, this.size / 2, this.cx, this.cy);
             }
         };
 
         this.update = function () {
             if (this.hiding) {
+                if (this.size <= 0) {
+                    this.currentShape = (this.currentShape + 1) % 3; //'rect';
+                    this.hiding = false;
+                    this.showing = true;
+                    return;
+                }
+
                 // Hide and if hidden --> this.hiding = false
+                this.size -= 5;
+            }
+            else if (this.showing) {
+                if (this.size >= this.originalSize) {
+                    this.showing = false;
+                    return;
+                }
+
+                this.size += 5;
             }
             else {
-
+                time++;
             }
         };
     };
@@ -55,20 +78,31 @@ var main = (function () {
     };
 
     // Hexagon utility
-    var hex = function () {
+    var hex = function (numberOfSides, size, centerX, centerY) {
+        ctx.beginPath();
+        ctx.moveTo (centerX +  size * Math.cos(0), centerY +  size *  Math.sin(0));
 
+        for (var i = 1; i <= numberOfSides;i += 1) {
+            ctx.lineTo (centerX + size * Math.cos(i * 2 * Math.PI / numberOfSides), centerY + size * Math.sin(i * 2 * Math.PI / numberOfSides));
+        }
+
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
     };
 
     // Draw
     var draw = function () {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         item.draw();
+        ctx.fillStyle = '#dadada';
+        ctx.font = '16px sans-serif';
+        ctx.fillText('Please wait while we process your request...', window.innerWidth / 2 - 140, window.innerHeight / 2 + 100);
     };
 
     var update = function () {
-        if (time >= 1500) {
+        if (time >= 100) {
             time = 0;
-            item.currentShape = 'rect'; // next
             item.hiding = true;
         }
 
@@ -79,6 +113,7 @@ var main = (function () {
     var loop = function _loop () {
         window.requestAnimationFrame(_loop);
         draw();
+        update();
     };
 
     // Initialisation
@@ -93,7 +128,8 @@ var main = (function () {
         item = new Shape({
             'cx': window.innerWidth / 2,
             'cy': window.innerHeight / 2,
-            'currentShape': 'circle'
+            'size': 100,
+            'currentShape': 0
         });
 
         // Event handlers
